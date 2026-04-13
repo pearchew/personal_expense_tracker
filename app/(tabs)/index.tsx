@@ -17,6 +17,7 @@ const getCategoryEmoji = (category) => {
   if (cat.includes('grocery') || cat.includes('groceries')) return '🛒';
   if (cat.includes('health') || cat.includes('medical')) return '💊';
   if (cat.includes('bill') || cat.includes('utility') || cat.includes('rent')) return '🧾';
+  if (cat.includes('health')) return '🏥';
   return '💸';
 };
 const formatToK = (num) => {
