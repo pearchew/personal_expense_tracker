@@ -332,6 +332,9 @@ export default function App() {
             color: (opacity = 1) => `rgba(132, 169, 140, ${opacity})`,
             labelColor: (opacity = 1) => `rgba(142, 142, 147, ${opacity})`,
             propsForBackgroundLines: { strokeWidth: 0 },
+            propsForLabels: { 
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' 
+            },
           }}
           bezier
           style={styles.chartStyle}
