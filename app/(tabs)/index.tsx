@@ -3,6 +3,7 @@ import { StyleSheet, Text, View, FlatList, SectionList, SafeAreaView, ActivityIn
 import Papa from 'papaparse';
 import { Ionicons } from '@expo/vector-icons';
 import { LineChart, PieChart } from 'react-native-chart-kit';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -37,6 +38,27 @@ export default function App() {
   const [tempBudget, setTempBudget] = useState(budget);
   const [tempCurrency, setTempCurrency] = useState(appCurrency);
   const [exchangeRates, setExchangeRates] = useState(null);
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const savedBudget = await AsyncStorage.getItem('@zenspend_budget');
+        const savedCurrency = await AsyncStorage.getItem('@zenspend_currency');
+        
+        if (savedBudget) {
+          setBudget(savedBudget);
+          setTempBudget(savedBudget); // Update the input box too
+        }
+        if (savedCurrency) {
+          setAppCurrency(savedCurrency);
+          setTempCurrency(savedCurrency);
+        }
+      } catch (error) {
+        console.error("Error loading settings:", error);
+      }
+    };
+    
+    loadSettings();
+  }, []);
 
   const [selectedMonthIndex, setSelectedMonthIndex] = useState(0);
 
@@ -394,10 +416,21 @@ export default function App() {
 
             <TouchableOpacity
               style={styles.saveButton}
-              onPress={() => {
+              onPress={async () => {
+                const finalCurrency = tempCurrency.toUpperCase();
+                
+                // Update temporary memory
                 setBudget(tempBudget);
-                setAppCurrency(tempCurrency.toUpperCase());
+                setAppCurrency(finalCurrency);
                 setSettingsVisible(false);
+
+                // Save to permanent phone storage
+                try {
+                  await AsyncStorage.setItem('@zenspend_budget', tempBudget);
+                  await AsyncStorage.setItem('@zenspend_currency', finalCurrency);
+                } catch (error) {
+                  console.error("Error saving settings:", error);
+                }
               }}
             >
               <Text style={styles.saveButtonText}>Save Changes</Text>
