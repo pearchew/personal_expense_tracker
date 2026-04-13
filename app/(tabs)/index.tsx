@@ -30,10 +30,37 @@ const pieColors = ['#84A98C', '#5C8EAC', '#D98A8A', '#E3B5A4', '#B5B5B5', '#A5A5
 export default function App() {
   const [sheetData, setSheetData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // We pull the fetch logic into its own function so we can call it on demand
+  const fetchSheetData = () => {
+    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRP86iBkm5Xz8nk-g5s6K6t7qkbZBAIEgtzcLhLAcB91d3Y_Px-3YOraz9hfYx1gHyDhmj2RNJoGbX2/pub?gid=707099685&single=true&output=csv";
+    Papa.parse(sheetUrl, {
+      download: true,
+      header: true,
+      skipEmptyLines: true,
+      transformHeader: (header) => header.trim(),
+      complete: (results) => {
+        setSheetData(results.data.reverse());
+        setLoading(false);
+        setRefreshing(false); // Stop the spinning refresh wheel
+      },
+      error: (err) => {
+        console.error("Error parsing:", err);
+        setLoading(false);
+        setRefreshing(false);
+      }
+    });
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchSheetData();
+  };
   const [activeTab, setActiveTab] = useState('dashboard');
 
   const [isSettingsVisible, setSettingsVisible] = useState(false);
-  const [budget, setBudget] = useState('3000');
+  const [budget, setBudget] = useState('10000');
   const [appCurrency, setAppCurrency] = useState('HKD');
   const [tempBudget, setTempBudget] = useState(budget);
   const [tempCurrency, setTempCurrency] = useState(appCurrency);
@@ -43,7 +70,7 @@ export default function App() {
       try {
         const savedBudget = await AsyncStorage.getItem('@zenspend_budget');
         const savedCurrency = await AsyncStorage.getItem('@zenspend_currency');
-        
+
         if (savedBudget) {
           setBudget(savedBudget);
           setTempBudget(savedBudget); // Update the input box too
@@ -56,7 +83,7 @@ export default function App() {
         console.error("Error loading settings:", error);
       }
     };
-    
+
     loadSettings();
   }, []);
 
@@ -233,7 +260,10 @@ export default function App() {
     const progressColor = progressPercentage > 80 ? '#D98A8A' : '#84A98C';
 
     return (
-      <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.tabContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#84A98C" />}>
         <View style={styles.budgetContainer}>
           <Text style={styles.sectionTitle}>Remaining Budget</Text>
           <Text style={styles.budgetValue}>
@@ -332,8 +362,8 @@ export default function App() {
             color: (opacity = 1) => `rgba(132, 169, 140, ${opacity})`,
             labelColor: (opacity = 1) => `rgba(142, 142, 147, ${opacity})`,
             propsForBackgroundLines: { strokeWidth: 0 },
-            propsForLabels: { 
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' 
+            propsForLabels: {
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
             },
           }}
           bezier
@@ -350,6 +380,7 @@ export default function App() {
         )}
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#84A98C" />}
       />
     </View>
   );
@@ -359,13 +390,27 @@ export default function App() {
       <StatusBar barStyle="light-content" />
 
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => {
-          setTempBudget(budget);
-          setTempCurrency(appCurrency);
-          setSettingsVisible(true);
-        }}>
-          <Ionicons name="settings-outline" size={24} color="#8E8E93" />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {/* NEW: Manual Sync Button for PWA */}
+          <TouchableOpacity 
+            onPress={() => {
+              setLoading(true); // Shows the main loading spinner
+              fetchSheetData(); // Re-fetches the data
+            }}
+            style={{ marginRight: 20 }}
+          >
+            <Ionicons name="sync" size={24} color="#8E8E93" />
+          </TouchableOpacity>
+
+          {/* EXISTING: Settings Button */}
+          <TouchableOpacity onPress={() => {
+            setTempBudget(budget);
+            setTempCurrency(appCurrency);
+            setSettingsVisible(true);
+          }}>
+            <Ionicons name="settings-outline" size={24} color="#8E8E93" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {loading ? (
@@ -421,7 +466,7 @@ export default function App() {
               style={styles.saveButton}
               onPress={async () => {
                 const finalCurrency = tempCurrency.toUpperCase();
-                
+
                 // Update temporary memory
                 setBudget(tempBudget);
                 setAppCurrency(finalCurrency);
