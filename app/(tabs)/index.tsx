@@ -101,6 +101,12 @@ export default function App() {
         complete: (results) => {
           const sorted = results.data
             .filter(row => row.Amount && row.Category)
+            .map(row => ({
+              ...row,
+              // 2. NEW: Scrub the Amount column. 
+              // This regex strips all letters, spaces, and commas, keeping only numbers, dots, and minus signs.
+              Amount: String(row.Amount).replace(/[^0-9.-]+/g, '') 
+            }))
             .sort((a, b) => parseDate(b.DateTimeStamp) - parseDate(a.DateTimeStamp));
           setSheetData(sorted);
           setLoading(false);
