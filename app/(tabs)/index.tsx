@@ -59,7 +59,17 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
-
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState('');
+  const formatSyncTime = (dateStr) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    let hours = d.getHours();
+    const minutes = d.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+    return `${hours}:${minutes} ${ampm}`;
+  };
   // Settings State
   const [isSettingsVisible, setSettingsVisible] = useState(false);
   const [budget, setBudget] = useState('10000');
@@ -85,6 +95,7 @@ export default function App() {
 
   // 2. Fetch Data Logic
   const fetchSheetData = async () => {
+    setIsSyncing(true); // Start the top-right spinner
     try {
       // Rates
       const rateRes = await fetch('https://open.er-api.com/v6/latest/USD');
@@ -98,29 +109,59 @@ export default function App() {
         header: true,
         skipEmptyLines: true,
         transformHeader: (h) => h.trim(),
-        complete: (results) => {
+        complete: async (results) => {
           const sorted = results.data
             .filter(row => row.Amount && row.Category)
             .map(row => ({
               ...row,
-              // 2. NEW: Scrub the Amount column. 
-              // This regex strips all letters, spaces, and commas, keeping only numbers, dots, and minus signs.
-              Amount: String(row.Amount).replace(/[^0-9.-]+/g, '') 
+              Amount: String(row.Amount).replace(/[^0-9.-]+/g, '')
             }))
             .sort((a, b) => parseDate(b.DateTimeStamp) - parseDate(a.DateTimeStamp));
+
           setSheetData(sorted);
-          setLoading(false);
+
+          // --- NEW: Save to Cache & Update Timestamp ---
+          const now = new Date().toISOString();
+          setLastSyncTime(formatSyncTime(now));
+          await AsyncStorage.setItem('@zenspend_cached_data', JSON.stringify(sorted));
+          await AsyncStorage.setItem('@zenspend_last_sync', now);
+
+          setIsSyncing(false); // Stop the top-right spinner
+          setLoading(false);   // Remove full-screen loader (if it was up)
           setRefreshing(false);
         }
       });
     } catch (error) {
       console.error(error);
+      setIsSyncing(false);
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  useEffect(() => { fetchSheetData(); }, []);
+  useEffect(() => {
+    const bootApp = async () => {
+      try {
+        // 1. Look for cached data on the hard drive
+        const cachedData = await AsyncStorage.getItem('@zenspend_cached_data');
+        const cachedTime = await AsyncStorage.getItem('@zenspend_last_sync');
+        
+        if (cachedData) {
+          // 2. If it exists, instantly draw the UI
+          setSheetData(JSON.parse(cachedData));
+          setLastSyncTime(formatSyncTime(cachedTime));
+          setLoading(false); 
+        }
+        
+        // 3. Silently fetch the newest rows in the background
+        fetchSheetData();
+      } catch (e) {
+        console.error("Cache load error:", e);
+        fetchSheetData(); // Fallback if cache fails
+      }
+    };
+    bootApp();
+  }, []);
 
   const getConvertedAmount = (amount, originalCurrency) => {
     const parsedAmount = parseFloat(amount) || 0;
@@ -230,45 +271,45 @@ export default function App() {
 
   const renderDashboard = () => {
     const { totalSpent, recentTransactions, currentMonthLabel, pieData } = dashboardMetrics;
-    const budgetNum = parseFloat(budget) || 1; 
+    const budgetNum = parseFloat(budget) || 1;
     const progress = Math.min((totalSpent / budgetNum) * 100, 100);
 
     // --- NEW: Daily Pacing Math ---
     let avgDaily = 0;
     let recDaily = 0;
-    
+
     if (currentMonthLabel) {
       // Parse the "MM/YYYY" string
       const [mStr, yStr] = currentMonthLabel.split('/');
       const m = parseInt(mStr, 10);
       const y = parseInt(yStr, 10);
-      
+
       const now = new Date();
       const isCurrentMonth = (now.getMonth() + 1 === m && now.getFullYear() === y);
-      
+
       // Get total days in that specific month (e.g. 30 or 31)
-      const totalDays = new Date(y, m, 0).getDate(); 
+      const totalDays = new Date(y, m, 0).getDate();
       // If it's the current month, divide by today's date. If it's an old month, divide by total days.
-      const daysElapsed = isCurrentMonth ? now.getDate() : totalDays; 
-      
+      const daysElapsed = isCurrentMonth ? now.getDate() : totalDays;
+
       avgDaily = totalSpent / Math.max(daysElapsed, 1);
       recDaily = budgetNum / Math.max(totalDays, 1);
     }
 
     return (
-      <ScrollView 
-        style={styles.tabContent} 
+      <ScrollView
+        style={styles.tabContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => {setRefreshing(true); fetchSheetData();}} tintColor="#84A98C" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchSheetData(); }} tintColor="#84A98C" />}
       >
         <View style={styles.budgetContainer}>
           <Text style={styles.sectionTitle}>Remaining Budget</Text>
-          
+
           {/* Changed to .toFixed(0) to remove decimals */}
           <Text style={styles.budgetValue}>
             {appCurrency} {Math.max(budgetNum - totalSpent, 0).toFixed(0)}
           </Text>
-          
+
           {/* Ensured totalSpent and budgetNum both have no decimals */}
           <Text style={styles.budgetSubText}>
             Spent {totalSpent.toFixed(0)} of {budgetNum.toFixed(0)} • {currentMonthLabel}{'\n'}
@@ -312,9 +353,21 @@ export default function App() {
       <StatusBar barStyle="light-content" />
       <View style={styles.header}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <TouchableOpacity onPress={() => { setLoading(true); fetchSheetData(); }} style={{ marginRight: 20 }}>
-            <Ionicons name="sync" size={24} color="#8E8E93" />
-          </TouchableOpacity>
+          
+          {/* NEW: Dynamic Sync Indicator */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 20 }}>
+            <Text style={{ color: '#8E8E93', fontSize: 12, marginRight: 8 }}>
+              {isSyncing ? "Syncing..." : `Synced ${lastSyncTime}`}
+            </Text>
+            {isSyncing ? (
+              <ActivityIndicator size="small" color="#84A98C" />
+            ) : (
+              <TouchableOpacity onPress={() => fetchSheetData()}>
+                <Ionicons name="sync" size={20} color="#8E8E93" />
+              </TouchableOpacity>
+            )}
+          </View>
+
           <TouchableOpacity onPress={() => { setTempBudget(budget); setTempCurrency(appCurrency); setSettingsVisible(true); }}>
             <Ionicons name="settings-outline" size={24} color="#8E8E93" />
           </TouchableOpacity>
