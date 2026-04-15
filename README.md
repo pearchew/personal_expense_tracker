@@ -50,4 +50,4 @@ Because the tool has no central database, anyone can spin up their own completel
 3. Open the app, click the Gear icon, and paste your **CSV Link**, **Budget**, and **Currency**. 
 
 ### Step 3: The Pipeline
-1. Install the [ZenSpend Core Shortcut](#) to your iPhone.
+1. Install the [ZenSpend Core Shortcuts](#) to your iPhone.
