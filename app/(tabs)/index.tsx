@@ -74,37 +74,66 @@ export default function App() {
   const [isSettingsVisible, setSettingsVisible] = useState(false);
   const [budget, setBudget] = useState('10000');
   const [appCurrency, setAppCurrency] = useState('HKD');
+  const [sheetUrl, setSheetUrl] = useState('');
   const [tempBudget, setTempBudget] = useState(budget);
   const [tempCurrency, setTempCurrency] = useState(appCurrency);
   const [exchangeRates, setExchangeRates] = useState(null);
+  const [tempSheetUrl, setTempSheetUrl] = useState(sheetUrl);
 
   const [selectedMonthIndex, setSelectedMonthIndex] = useState(0);
 
   // 1. Load Permanent Settings from Storage
-  useEffect(() => {
-    const loadSettings = async () => {
+useEffect(() => {
+    const bootApp = async () => {
       try {
+        // Load settings
         const savedBudget = await AsyncStorage.getItem('@zenspend_budget');
         const savedCurrency = await AsyncStorage.getItem('@zenspend_currency');
+        const savedUrl = await AsyncStorage.getItem('@zenspend_sheet_url'); // NEW
+        
         if (savedBudget) { setBudget(savedBudget); setTempBudget(savedBudget); }
         if (savedCurrency) { setAppCurrency(savedCurrency); setTempCurrency(savedCurrency); }
-      } catch (e) { console.error(e); }
+        if (savedUrl) { 
+          setSheetUrl(savedUrl); 
+          setTempSheetUrl(savedUrl); 
+        }
+
+        // Load Cache
+        const cachedData = await AsyncStorage.getItem('@zenspend_cached_data');
+        const cachedTime = await AsyncStorage.getItem('@zenspend_last_sync');
+        
+        if (cachedData) {
+          setSheetData(JSON.parse(cachedData));
+          setLastSyncTime(formatSyncTime(cachedTime));
+          setLoading(false); 
+        }
+        
+        // Fetch new data (pass the URL directly in case state hasn't updated yet)
+        if (savedUrl) {
+          fetchSheetData(savedUrl);
+        } else {
+          setLoading(false); // Stop loading if they are a brand new user with no URL
+        }
+      } catch (e) {
+        console.error("Boot error:", e);
+      }
     };
-    loadSettings();
+    bootApp();
   }, []);
 
   // 2. Fetch Data Logic
-  const fetchSheetData = async () => {
-    setIsSyncing(true); // Start the top-right spinner
+  const fetchSheetData = async (urlToFetch = sheetUrl) => {
+    if (!urlToFetch) return; // Don't try to fetch if the URL is completely empty
+
+    setIsSyncing(true);
     try {
       // Rates
       const rateRes = await fetch('https://open.er-api.com/v6/latest/USD');
       const rateData = await rateRes.json();
       setExchangeRates(rateData.rates);
 
-      // Sheet
-      const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRP86iBkm5Xz8nk-g5s6K6t7qkbZBAIEgtzcLhLAcB91d3Y_Px-3YOraz9hfYx1gHyDhmj2RNJoGbX2/pub?gid=707099685&single=true&output=csv";
-      Papa.parse(sheetUrl, {
+      // Sheet (using the dynamic URL)
+      Papa.parse(urlToFetch, {
         download: true,
         header: true,
         skipEmptyLines: true,
@@ -418,10 +447,33 @@ export default function App() {
           <TextInput style={styles.input} keyboardType="numeric" value={tempBudget} onChangeText={setTempBudget} />
           <Text style={styles.inputLabel}>Base Currency</Text>
           <TextInput style={styles.input} autoCapitalize="characters" maxLength={3} value={tempCurrency} onChangeText={setTempCurrency} />
+          {/* NEW: Database URL Input */}
+          <Text style={styles.inputLabel}>Google Sheet CSV URL</Text>
+          <TextInput 
+            style={styles.input} 
+            value={tempSheetUrl} 
+            onChangeText={setTempSheetUrl} 
+            autoCapitalize="none" 
+            autoCorrect={false} 
+          />
           <TouchableOpacity style={styles.saveButton} onPress={async () => {
-            setBudget(tempBudget); setAppCurrency(tempCurrency.toUpperCase()); setSettingsVisible(false);
-            await AsyncStorage.setItem('@zenspend_budget', tempBudget); await AsyncStorage.setItem('@zenspend_currency', tempCurrency.toUpperCase());
-          }}><Text style={styles.saveButtonText}>Save Changes</Text></TouchableOpacity>
+            // Update State
+            setBudget(tempBudget); 
+            setAppCurrency(tempCurrency.toUpperCase()); 
+            setSheetUrl(tempSheetUrl);
+            setSettingsVisible(false);
+            
+            // Save to Hard Drive
+            await AsyncStorage.setItem('@zenspend_budget', tempBudget); 
+            await AsyncStorage.setItem('@zenspend_currency', tempCurrency.toUpperCase());
+            await AsyncStorage.setItem('@zenspend_sheet_url', tempSheetUrl);
+            
+            // Immediately pull the new database!
+            setLoading(true);
+            fetchSheetData(tempSheetUrl);
+          }}>
+            <Text style={styles.saveButtonText}>Save Changes</Text>
+          </TouchableOpacity>
         </View></View>
       </Modal>
     </SafeAreaView>
