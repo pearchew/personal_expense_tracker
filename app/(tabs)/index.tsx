@@ -230,19 +230,51 @@ export default function App() {
 
   const renderDashboard = () => {
     const { totalSpent, recentTransactions, currentMonthLabel, pieData } = dashboardMetrics;
-    const budgetNum = parseFloat(budget) || 1;
+    const budgetNum = parseFloat(budget) || 1; 
     const progress = Math.min((totalSpent / budgetNum) * 100, 100);
 
+    // --- NEW: Daily Pacing Math ---
+    let avgDaily = 0;
+    let recDaily = 0;
+    
+    if (currentMonthLabel) {
+      // Parse the "MM/YYYY" string
+      const [mStr, yStr] = currentMonthLabel.split('/');
+      const m = parseInt(mStr, 10);
+      const y = parseInt(yStr, 10);
+      
+      const now = new Date();
+      const isCurrentMonth = (now.getMonth() + 1 === m && now.getFullYear() === y);
+      
+      // Get total days in that specific month (e.g. 30 or 31)
+      const totalDays = new Date(y, m, 0).getDate(); 
+      // If it's the current month, divide by today's date. If it's an old month, divide by total days.
+      const daysElapsed = isCurrentMonth ? now.getDate() : totalDays; 
+      
+      avgDaily = totalSpent / Math.max(daysElapsed, 1);
+      recDaily = budgetNum / Math.max(totalDays, 1);
+    }
+
     return (
-      <ScrollView
-        style={styles.tabContent}
+      <ScrollView 
+        style={styles.tabContent} 
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchSheetData(); }} tintColor="#84A98C" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => {setRefreshing(true); fetchSheetData();}} tintColor="#84A98C" />}
       >
         <View style={styles.budgetContainer}>
           <Text style={styles.sectionTitle}>Remaining Budget</Text>
-          <Text style={styles.budgetValue}>{appCurrency} {Math.max(budgetNum - totalSpent, 0).toFixed(2)}</Text>
-          <Text style={styles.budgetSubText}>Spent {totalSpent.toFixed(2)} of {budgetNum} • {currentMonthLabel}</Text>
+          
+          {/* Changed to .toFixed(0) to remove decimals */}
+          <Text style={styles.budgetValue}>
+            {appCurrency} {Math.max(budgetNum - totalSpent, 0).toFixed(0)}
+          </Text>
+          
+          {/* Ensured totalSpent and budgetNum both have no decimals */}
+          <Text style={styles.budgetSubText}>
+            Spent {totalSpent.toFixed(0)} of {budgetNum.toFixed(0)} • {currentMonthLabel}{'\n'}
+            Currently {avgDaily.toFixed(0)}/day avg vs {recDaily.toFixed(0)}/day rec
+          </Text>
+
           <View style={styles.progressBarBackground}>
             <View style={[styles.progressBarFill, { width: `${progress}%`, backgroundColor: progress > 80 ? '#D98A8A' : '#84A98C' }]} />
           </View>
