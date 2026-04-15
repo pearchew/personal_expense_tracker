@@ -51,3 +51,7 @@ Because the tool has no central database, anyone can spin up their own completel
 
 ### Step 3: The Pipeline
 1. Install the [ZenSpend Core Shortcuts](#) to your iPhone.
+
+***
+
+*Built with React Native, Apple Neural Engine, and spite for SaaS fees.*
