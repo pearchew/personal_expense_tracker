@@ -1,4 +1,4 @@
-# Zen 📉
+# [Zen](https://zen-setup-page.lovable.app/) 📉
 
 > A zero-cost, serverless, offline-capable personal finance ecosystem built for the frustrated minimalist. No subscriptions, no ads, no forced banking integrations—just your data, perfectly formatted, exactly how you want it.
 
