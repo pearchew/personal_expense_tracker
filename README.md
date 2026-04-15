@@ -35,9 +35,9 @@ Data enters the ecosystem via a suite of native iOS Shortcuts, running silently 
 
 ---
 
-## 🛠️ Setup Guide (For Friends & Forks)
+## 🛠️ Setup Guide (For Friends & Forks) - WIP
 
-Because ZenSpend has no central database, anyone can spin up their own completely private instance in 3 steps:
+Because the tool has no central database, anyone can spin up their own completely private instance in 3 steps:
 
 ### Step 1: The Database
 1. Duplicate the [ZenSpend Google Sheet Template](#) to your own Google Drive.
