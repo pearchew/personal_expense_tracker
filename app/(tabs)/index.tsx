@@ -83,31 +83,31 @@ export default function App() {
   const [selectedMonthIndex, setSelectedMonthIndex] = useState(0);
 
   // 1. Load Permanent Settings from Storage
-useEffect(() => {
+  useEffect(() => {
     const bootApp = async () => {
       try {
         // Load settings
         const savedBudget = await AsyncStorage.getItem('@zenspend_budget');
         const savedCurrency = await AsyncStorage.getItem('@zenspend_currency');
         const savedUrl = await AsyncStorage.getItem('@zenspend_sheet_url'); // NEW
-        
+
         if (savedBudget) { setBudget(savedBudget); setTempBudget(savedBudget); }
         if (savedCurrency) { setAppCurrency(savedCurrency); setTempCurrency(savedCurrency); }
-        if (savedUrl) { 
-          setSheetUrl(savedUrl); 
-          setTempSheetUrl(savedUrl); 
+        if (savedUrl) {
+          setSheetUrl(savedUrl);
+          setTempSheetUrl(savedUrl);
         }
 
         // Load Cache
         const cachedData = await AsyncStorage.getItem('@zenspend_cached_data');
         const cachedTime = await AsyncStorage.getItem('@zenspend_last_sync');
-        
+
         if (cachedData) {
           setSheetData(JSON.parse(cachedData));
           setLastSyncTime(formatSyncTime(cachedTime));
-          setLoading(false); 
+          setLoading(false);
         }
-        
+
         // Fetch new data (pass the URL directly in case state hasn't updated yet)
         if (savedUrl) {
           fetchSheetData(savedUrl);
@@ -174,14 +174,14 @@ useEffect(() => {
         // 1. Look for cached data on the hard drive
         const cachedData = await AsyncStorage.getItem('@zenspend_cached_data');
         const cachedTime = await AsyncStorage.getItem('@zenspend_last_sync');
-        
+
         if (cachedData) {
           // 2. If it exists, instantly draw the UI
           setSheetData(JSON.parse(cachedData));
           setLastSyncTime(formatSyncTime(cachedTime));
-          setLoading(false); 
+          setLoading(false);
         }
-        
+
         // 3. Silently fetch the newest rows in the background
         fetchSheetData();
       } catch (e) {
@@ -382,7 +382,7 @@ useEffect(() => {
       <StatusBar barStyle="light-content" />
       <View style={styles.header}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          
+
           {/* NEW: Dynamic Sync Indicator */}
           <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 20 }}>
             <Text style={{ color: '#8E8E93', fontSize: 12, marginRight: 8 }}>
@@ -449,25 +449,25 @@ useEffect(() => {
           <TextInput style={styles.input} autoCapitalize="characters" maxLength={3} value={tempCurrency} onChangeText={setTempCurrency} />
           {/* NEW: Database URL Input */}
           <Text style={styles.inputLabel}>Google Sheet CSV URL</Text>
-          <TextInput 
-            style={styles.input} 
-            value={tempSheetUrl} 
-            onChangeText={setTempSheetUrl} 
-            autoCapitalize="none" 
-            autoCorrect={false} 
+          <TextInput
+            style={styles.input}
+            value={tempSheetUrl}
+            onChangeText={setTempSheetUrl}
+            autoCapitalize="none"
+            autoCorrect={false}
           />
           <TouchableOpacity style={styles.saveButton} onPress={async () => {
             // Update State
-            setBudget(tempBudget); 
-            setAppCurrency(tempCurrency.toUpperCase()); 
+            setBudget(tempBudget);
+            setAppCurrency(tempCurrency.toUpperCase());
             setSheetUrl(tempSheetUrl);
             setSettingsVisible(false);
-            
+
             // Save to Hard Drive
-            await AsyncStorage.setItem('@zenspend_budget', tempBudget); 
+            await AsyncStorage.setItem('@zenspend_budget', tempBudget);
             await AsyncStorage.setItem('@zenspend_currency', tempCurrency.toUpperCase());
             await AsyncStorage.setItem('@zenspend_sheet_url', tempSheetUrl);
-            
+
             // Immediately pull the new database!
             setLoading(true);
             fetchSheetData(tempSheetUrl);

@@ -1,50 +1,64 @@
-# Welcome to your Expo app 👋
+# Zen 📉
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+> A zero-cost, serverless, offline-capable personal finance ecosystem built for the frustrated minimalist. No subscriptions, no ads, no forced banking integrations—just your data, perfectly formatted, exactly how you want it.
 
-## Get started
+## 🧠 The Philosophy
+Modern budgeting apps are bloated. They charge you $10/month to look at your own money, sell your data, and take 15 seconds to load a dashboard. This tool is a radical departure. It uses a **Bring Your Own Database (BYOD)** architecture, leveraging Google Sheets as a free backend, Apple Shortcuts as an ingestion engine, and a React Native Web App as a lightning-fast frontend. 
 
-1. Install dependencies
+## 🏗️ The Architecture
 
-   ```bash
-   npm install
-   ```
+### 1. The Backend (Google Sheets)
+* **Zero Cost:** Hosted entirely on a personal Google Sheet.
+* **Write:** Receives POST requests via a linked Google Form URL.
+* **Read:** Published to the web as a CSV, completely bypassing complex API authentication.
 
-2. Start the app
+### 2. The Ingestion Engine (Apple Shortcuts)
+Data enters the ecosystem via a suite of native iOS Shortcuts, running silently in the background:
+* 📝 **Manual Logging:** A rapid-fire prompt for Amount, Category, and Note.
+* 📸 **AI Receipt Scanner:** Uses Apple's on-device OCR to read a physical receipt, passes the text to a local, offline LLM (via Enclave), formats it as strict JSON, and fires it to the database.
+* 📶 **Offline-First Queue:** If you lose internet (e.g., on the subway), Shortcuts intercepts the network failure, writes the transaction to a local `PendingSpends.txt` file, and automatically bulk-syncs the backlog the next time you log an expense on Wi-Fi.
 
-   ```bash
-   npx expo start
-   ```
+### 3. The Frontend (React Native PWA)
+* **Hosted on Vercel:** Installs natively to the iOS home screen as a Progressive Web App.
+* **Cache-First Loading:** Reads the last synced state from `AsyncStorage` to render the dashboard in 0.1 seconds, while silently fetching the newest CSV rows in the background.
+* **Data Cleansing:** Implements aggressive Regex at the fetch layer to strip out dirty data (e.g., converting `"HK$22.00"` or `"$2,500"` from the Google Sheet into pure integers).
+* **Dynamic Pacing:** Calculates real-time daily burn rates based on the exact number of days in the current month.
 
-In the output, you'll find options to open the app in a
+---
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## 🚀 Features
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- [x] **BYOD Settings:** Input your own Google Sheet URL, base currency, and monthly budget directly in the app.
+- [x] **Top-Level Metrics:** Instantly see Remaining Budget, Total Spent, and Daily Averages vs. Recommended.
+- [x] **Infinite Scroller:** Uses React Native's `SectionList` to recycle UI components, allowing thousands of rows to scroll flawlessly without crashing the browser.
+- [x] **Dark Mode Native:** Charcoal-gray cards, minimalist green progress bars, and zero visual clutter.
 
-## Get a fresh project
+---
 
-When you're ready, run:
+## 🛠️ Setup Guide (For Friends & Forks)
 
-```bash
-npm run reset-project
-```
+Because the tool has no central database, anyone can spin up their own completely private instance in 3 steps:
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### Step 1: The Database
+1. Duplicate the [Google Sheet Template](#) to your own Google Drive.
+2. Go to **File > Share > Publish to Web** and publish the "Current" tab as a **CSV**. Copy this link.
+3. Link a Google Form to the sheet to act as your POST webhook.
 
-## Learn more
+### Step 2: The App
+1. Go to the hosted Vercel link: `[Your-Vercel-URL-Here]`
+2. Add the site to your iOS Home Screen.
+3. Open the app, click the Gear icon, and paste your **CSV Link**, **Budget**, and **Currency**. 
 
-To learn more about developing your project with Expo, look at the following resources:
+### Step 3: The Pipeline
+1. Install the [Core Shortcuts](#) to your iPhone.
+2. Edit the Shortcut once to paste your specific Google Form POST URL.
+3. Start logging.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+---
 
-## Join the community
+## 🔮 Future-Proofing (Maintenance)
+To keep the app loading instantly after years of use, employ the **Archive Method**. Once a year, create a new tab in your Google Sheet (e.g., "2026 Archive") and move historical rows there. The PWA will only fetch the current active year, keeping the payload tiny while your data remains safely backed up. 
 
-Join our community of developers creating universal apps.
+***
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+*Built with React Native, Apple Neural Engine, and spite for SaaS fees.*
