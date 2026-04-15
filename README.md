@@ -1,9 +1,9 @@
-# Personal Expense Tracker 📉
+# Zen 📉
 
 > A zero-cost, serverless, offline-capable personal finance ecosystem built for the frustrated minimalist. No subscriptions, no ads, no forced banking integrations—just your data, perfectly formatted, exactly how you want it.
 
 ## 🧠 The Philosophy
-Modern budgeting apps are bloated. They charge you $10/month to look at your own money, sell your data, and take 15 seconds to load a dashboard. ZenSpend is a radical departure. It uses a **Bring Your Own Database (BYOD)** architecture, leveraging Google Sheets as a free backend, Apple Shortcuts as an ingestion engine, and a React Native Web App as a lightning-fast frontend. 
+Modern budgeting apps are bloated. They charge you $10/month to look at your own money, sell your data, and take 15 seconds to load a dashboard. Zen is a radical departure. It uses a **Bring Your Own Database (BYOD)** architecture, leveraging Google Sheets as a free backend, Apple Shortcuts as an ingestion engine, and a React Native Web App as a lightning-fast frontend. 
 
 ## 🏗️ The Architecture
 
@@ -40,7 +40,7 @@ Data enters the ecosystem via a suite of native iOS Shortcuts, running silently 
 Because the tool has no central database, anyone can spin up their own completely private instance in 3 steps:
 
 ### Step 1: The Database
-1. Duplicate the [ZenSpend Google Sheet Template](#) to your own Google Drive.
+1. Duplicate the [Zen Google Sheet Template](#) to your own Google Drive.
 2. Go to **File > Share > Publish to Web** and publish the "Current" tab as a **CSV**. Copy this link.
 3. Link a Google Form to the sheet to act as your POST webhook.
 
@@ -50,7 +50,7 @@ Because the tool has no central database, anyone can spin up their own completel
 3. Open the app, click the Gear icon, and paste your **CSV Link**, **Budget**, and **Currency**. 
 
 ### Step 3: The Pipeline
-1. Install the [ZenSpend Core Shortcuts](#) to your iPhone.
+1. Install the [Zen Core Shortcuts](#) to your iPhone.
 
 ***
 
