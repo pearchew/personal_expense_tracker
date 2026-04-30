@@ -233,10 +233,36 @@ export default function App() {
       dailyTotals[dayStr] = (dailyTotals[dayStr] || 0) + amount;
     });
 
-    const sortedDays = Object.keys(dailyTotals).sort((a, b) => parseInt(a) - parseInt(b));
+    // 1. Determine the exact number of days in the active month
+    let m, y;
+    if (activeMonthLabel === "Current Month") {
+      const now = new Date();
+      m = now.getMonth() + 1;
+      y = now.getFullYear();
+    } else {
+      const [mStr, yStr] = activeMonthLabel.split('/');
+      m = parseInt(mStr, 10);
+      y = parseInt(yStr, 10);
+    }
+    const totalDays = new Date(y, m, 0).getDate() || 30;
+
+    const labels = [];
+    const cumulative = [];
     let runningSum = 0;
-    const labels = sortedDays;
-    const cumulative = sortedDays.map(day => { runningSum += dailyTotals[day]; return runningSum; });
+
+    for (let i = 1; i <= totalDays; i++) {
+      // Safely find the total spent on this specific day (handles both "01" and "1" date string formats)
+      const spentThisDay = Object.keys(dailyTotals).reduce((sum, key) => {
+        if (parseInt(key, 10) === i) return sum + dailyTotals[key];
+        return sum;
+      }, 0);
+
+      runningSum += spentThisDay;
+
+      // 2. Only show the label string every 3 days to prevent X-axis overlapping
+      labels.push(i % 3 === 1 ? i.toString() : "");
+      cumulative.push(runningSum);
+    }
 
     return {
       groupedTransactions: Object.keys(groups).map(date => ({ title: date, data: groups[date] })),
