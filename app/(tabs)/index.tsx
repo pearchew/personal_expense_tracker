@@ -441,16 +441,38 @@ export default function App() {
                 <TouchableOpacity onPress={() => setSelectedMonthIndex(Math.max(selectedMonthIndex - 1, 0))}><Ionicons name="chevron-forward" size={24} color="#FFFFFF" /></TouchableOpacity>
               </View>
               <LineChart
-                data={{ labels: chartData.labels, datasets: [{ data: chartData.data }] }}
-                width={screenWidth - 40} height={180} withDots={false} withInnerLines={false} withOuterLines={false}
-                formatYLabel={(v) => Number(v) >= 1000 ? (Number(v) / 1000).toFixed(1).replace(/\.0$/, '') + 'K' : v}
-                chartConfig={{
-                  backgroundColor: '#1C1C1E', backgroundGradientFrom: '#1C1C1E', backgroundGradientTo: '#1C1C1E',
-                  color: (opacity = 1) => `rgba(132, 169, 140, ${opacity})`, labelColor: () => `#8E8E93`,
-                  propsForLabels: { fontFamily: '-apple-system, system-ui, Roboto, sans-serif' }
-                }}
-                bezier style={styles.chartStyle}
-              />
+  data={{
+    labels: chartData.labels,
+    datasets: [
+      { 
+        data: chartData.data 
+      },
+      { 
+        // Forces the Y-axis to scale to at least the budget value
+        data: new Array(chartData.labels.length).fill(parseFloat(budget) || 0), 
+        color: () => 'transparent', // Keeps this reference line invisible
+        withDots: false,
+      }
+    ]
+  }}
+  fromZero={true} // Ensures the axis starts at 0
+  width={screenWidth - 40} 
+  height={180} 
+  withDots={false} 
+  withInnerLines={false} 
+  withOuterLines={false}
+  formatYLabel={(v) => Number(v) >= 1000 ? (Number(v) / 1000).toFixed(1).replace(/\.0$/, '') + 'K' : v}
+  chartConfig={{
+    backgroundColor: '#1C1C1E', 
+    backgroundGradientFrom: '#1C1C1E', 
+    backgroundGradientTo: '#1C1C1E',
+    color: (opacity = 1) => `rgba(132, 169, 140, ${opacity})`, 
+    labelColor: () => `#8E8E93`,
+    propsForLabels: { fontFamily: '-apple-system, system-ui, Roboto, sans-serif' }
+  }}
+  bezier 
+  style={styles.chartStyle}
+/>
               <SectionList
                 sections={groupedTransactions} keyExtractor={(item, i) => i.toString()} renderItem={renderTransactionItem}
                 renderSectionHeader={({ section: { title } }) => <Text style={styles.dateHeader}>{title}</Text>}
